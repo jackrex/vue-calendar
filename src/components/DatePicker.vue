@@ -5,40 +5,96 @@
         <button class="close" @click="closeMask"></button>
         <div class="dialog-title">{{title}}</div>
       </div>
-      <div class="weeks-container">
-        <div class="weeks">
-          <div class="week" v-for="(wk,key) in weekName" :key="key">{{wk}}</div>
-        </div>
-      </div>
-      <div class="main-container">
-        <div class="main">
-          <div class="day" v-for="(day,key) in dateArr" :key="key" @click="clickDate(day,key)">
-            <div
-              class="value"
-              :class="(day.flag && 'disbaled') || (day.isActive && 'on')"
-            >{{day.value}}</div>
-            <div class="parameter"></div>
+
+      <template>
+        <div id="calendar">
+          <div class="date-title">
+            <div>日</div>
+            <div>一</div>
+            <div>二</div>
+            <div>三</div>
+            <div>四</div>
+            <div>五</div>
+            <div>六</div>
+          </div>
+          <div
+            class="calendar-container"
+            :style="{height: `${calendarContainerHeight}`}"
+            v-on:scroll="scrollDebounce"
+          >
+            <div class="date-container premonth">
+              <div class="date-header">{{ `${preDivCalendar.year}年${preDivCalendar.month + 1}月` }}</div>
+              <div class="date-board">
+                <div
+                  v-for="i in new Date(preDivCalendar.year, preDivCalendar.month, 1).getDay()"
+                  :key="-i"
+                ></div>
+                <div
+                  class="date-block"
+                  :class="{todayBlock: i === 1}"
+                  v-for="i in getMonthDayByMonthYear(preDivCalendar.month, preDivCalendar.year)"
+                  :key="i"
+                >
+                  <span>{{ i }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="date-container middlemonth">
+              <div
+                class="date-header"
+              >{{ `${middleDivCalendar.year}年${middleDivCalendar.month + 1}月` }}</div>
+              <div class="date-board">
+                <div
+                  v-for="i in new Date(middleDivCalendar.year, middleDivCalendar.month, 1).getDay()"
+                  :key="-i"
+                ></div>
+                <div
+                  class="date-block"
+                  :class="{todayBlock: i === 1}"
+                  v-for="i in getMonthDayByMonthYear (middleDivCalendar.month, middleDivCalendar.year)"
+                  :key="i"
+                >
+                  <span>{{ i }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="date-container nextmonth">
+              <div
+                class="date-header"
+              >{{ `${nextMiddleDivCalendar.year}年${nextMiddleDivCalendar.month + 1}月` }}</div>
+              <div class="date-board">
+                <div
+                  v-for="i in new Date(nextMiddleDivCalendar.year, nextMiddleDivCalendar.month, 1).getDay()"
+                  :key="-i"
+                ></div>
+                <div
+                  class="date-block"
+                  :class="{todayBlock: i === 1}"
+                  v-for="i in getMonthDayByMonthYear (nextMiddleDivCalendar.month, nextMiddleDivCalendar.year)"
+                  :key="i"
+                >
+                  <span>{{ i }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="fold-btn" @click="isShow=!isShow">
+            {{ isShow ? '收起' : '展开' }}
+            <span :class="{topArrow: isShow, bottomArrow: !isShow}"></span>
           </div>
         </div>
-      </div>
-
-      <div class="btns">
-        <div v-if="type != 'confirm'" class="default-btn" @click="closeBtn">{{cancelText}}</div>
-        <div v-if="type == 'danger'" class="danger-btn" @click="dangerBtn">{{dangerText}}</div>
-        <div v-if="type == 'confirm'" class="confirm-btn" @click="confirmBtn">{{confirmText}}</div>
-      </div>
-      <div class="close-btn" @click="closeMask">
-        <i class="iconfont icon-close"></i>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
-<script>
 
-import monthUtil from './monthUtil.js'
+
+<script>
+import monthUtil from "./monthUtil.js";
 
 export default {
+  name: "calendarSlider",
   props: {
     value: {},
     // 类型包括 defalut 默认， danger 危险， confirm 确认，
@@ -46,75 +102,57 @@ export default {
       type: String,
       default: "default"
     },
-    parentTime: {
-      // 当前时间，可由父级传入指定时间
-      type: String,
-      default: "",
-      required: false
-    },
-    content: {
-      type: String,
-      default: ""
-    },
-    title: {
-      type: String,
-      default: ""
-    },
-    cancelText: {
-      type: String,
-      default: "取消"
+    events: {
+      type: Array,
+      default: function() {
+        return [];
+      }
     }
   },
   data() {
-    let today = new Date();
     return {
-      today: today,
-      weekName: ["日", "一", "二", "三", "四", "五", "六"],
       showMask: false,
-      currentDate: "", // 当前时间
-      currentYear: "", // 当年
-      currentMonth: "", // 当月
-      currentDay: "",
-      tempDay: "", // 切换时用到的临时变量
-      firstDay: "", // 当月第一天是星期几
-      monthDays: [], // 12个月份中每个月的天数
-      showTime: "", // 用于显示的年月份
-      dateArr: [] // 用于循环的日
+      isShow: true, // 控制日历的收起与展开
+      calendarContainerHeight: "0", // 日历的高度
+      scrollTimer: null, // 滚动定时器，用于滚动事件防抖动
+      preDivCalendar: { year: 2018, month: 6 }, // 第一个div显示的日历
+      middleDivCalendar: { year: 2018, month: 7 }, // 中间div显示的日历
+      nextMiddleDivCalendar: { year: 2018, month: 8 } // 最后一个div显示的日历
     };
   },
+
   methods: {
-    init(time) {
-      // 初始化
-      this.currentDate = time;
-      this.currentYear = time.getFullYear();
-      this.currentMonth = time.getMonth();
-      this.currentDay = this.tempDay || time.getDate();
-      this.getMonthDays();
-      this.getFirstDay();
-      this.calcullateDates();
-      this.showTime =
-        this.currentYear +
-        "/" +
-        (this.currentMonth + 1) +
-        "/" +
-        this.currentDay;
-      this.tempDay = "";
+    closeMask() {
+      this.showMask = false;
     },
-    isLeap(year) {
-      // 计算闰年
-      return year % 100 == 0
-        ? year % 400 == 0
-          ? 1
-          : 0
-        : year % 4 == 0
-        ? 1
-        : 0;
+    closeBtn() {
+      this.$emit("cancel");
+      this.closeMask();
     },
-    getMonthDays() {
-      // 预先设置每月天数并计算二月天数
-      this.monthDays = new Array(
+    getPrevMonth: function(m, y) {
+      // 获取上一个月
+      let month = m || 11;
+      let year = y;
+      year -= m === 0;
+      month -= m !== 0;
+      return { year, month };
+    },
+    getNextMonth: function(m, y) {
+      // 获取下一个月
+      let month = m;
+      let year = y;
+      year += m === 11;
+      month = (1 + month) % 12;
+      return { year, month };
+    },
+    getMonthDayByMonthYear(month, year) {
+      // 获取某年某月的天数
+      // 判断是否为闰年
+      const isLeap =
+        year % 100 === 0 ? (year % 400 === 0 ? 1 : 0) : year % 4 === 0 ? 1 : 0;
+      const monthDay = [
         31,
-        28 + this.isLeap(this.currentYear),
+        28 + isLeap,
         31,
         30,
         31,
@@ -125,104 +163,62 @@ export default {
         31,
         30,
         31
-      );
+      ]; // 数组中的每一项代表每个月的天数
+      return monthDay[month];
     },
-    getFirstDay() {
-      // 获取当月第一天是星期几
-      this.firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
-    },
-    calcullateDates() {
-      // 计算月内天数，共显示5行，所以循环35次，超出当月天数的要重新计算
-      let tempArr = [];
-      for (let i = 0; i < 35; i++) {
-        let dateValue = i - this.firstDay + 1; // 当月
-        let clickFlag = false; // 是否可点击
-        let isActive = false; // 是否选中
-        let time = {
-          // 用于传回父级的时间
-          year: this.currentYear,
-          month: this.currentMonth + 1,
-          day: dateValue
-        };
-        if (dateValue <= 0 && this.currentMonth != 0) {
-          // 上月
-          dateValue = this.monthDays[this.currentMonth - 1] + dateValue;
-          clickFlag = true;
-          time.month = this.currentMonth;
-          time.day = dateValue;
-        } else if (dateValue <= 0 && this.currentMonth == 0) {
-          // 去年
-          dateValue = this.monthDays[this.monthDays.length - 1] + dateValue;
-          clickFlag = true;
-          time.year = this.currentYear - 1;
-          time.month = this.currentMonth + 1;
-          time.day = dateValue;
-        } else if (dateValue > this.monthDays[this.currentMonth]) {
-          // 下月
-          dateValue = dateValue - this.monthDays[this.currentMonth];
-          clickFlag = true;
-          time.month = this.currentMonth + 1 + 1;
-          time.day = dateValue;
-        } else if (
-          (this.currentDay < dateValue &&
-            this.today.getMonth() <= this.currentMonth) ||
-          this.today.getMonth() < this.currentMonth ||
-          this.today.getFullYear() < this.currentYear
+    scrollDebounce(e) {
+      clearTimeout(this.scrollTimer);
+      let self = this;
+      // 设置定时器，防止scroll抖动
+      this.scrollTimer = setTimeout(function() {
+        if (e.target.scrollTop === 0) {
+          self.middleDivCalendar = self.getPrevMonth(
+            self.middleDivCalendar.month,
+            self.middleDivCalendar.year
+          );
+          self.$nextTick(function() {
+            // DOM 更新了
+            const premonth = document.querySelector(".premonth");
+            e.target.scrollTop = premonth.offsetHeight;
+          });
+        }
+        if (
+          e.target.scrollTop + e.target.clientHeight + 1 >=
+          e.target.scrollHeight
         ) {
-          // 大于今天日期不能点击
-          clickFlag = true;
+          self.middleDivCalendar = self.getNextMonth(
+            self.middleDivCalendar.month,
+            self.middleDivCalendar.year
+          );
+          self.$nextTick(function() {
+            // DOM 更新了
+            const nextmonth = document.querySelector(".nextmonth");
+            e.target.scrollTop =
+              e.target.scrollHeight -
+              e.target.clientHeight -
+              nextmonth.offsetHeight;
+          });
         }
-        if (dateValue == this.currentDay) {
-          isActive = true;
-        }
-        tempArr.push({
-          value: dateValue,
-          flag: clickFlag,
-          isActive,
-          dateObj: time
-        });
-      }
-      this.dateArr = tempArr;
-    },
-    nextMonth() {
-      // 下月
-      let time = new Date(this.currentYear, this.currentMonth + 2, 0);
-      this.tempDay = this.currentDay;
-      this.init(time);
-    },
-    preMonth() {
-      // 上月
-      let time = new Date(this.currentYear, this.currentMonth, 0);
-      this.tempDay = this.currentDay;
-      this.init(time);
-    },
-    clickDate(day, key) {
-      // 点击事件，向父组件传递所点击的年月日
-      if (day.flag) {
-        return false;
-      }
-      // console.log(day,key);
-      this.showTime =
-        day.dateObj.year + "/" + day.dateObj.month + "/" + day.dateObj.day;
-      this.dateArr.forEach((item, index) => {
-        this.dateArr[index].isActive = index == key;
-      });
-      this.$emit("getQueryByDate", this.showTime);
-    },
-    closeMask() {
-      this.showMask = false;
-    },
-    closeBtn() {
-      this.$emit("cancel");
-      this.closeMask();
+      }, 100);
     }
   },
   mounted() {
     this.showMask = this.value;
-    let time = this.parentTime ? new Date(this.parentTime) : new Date(); // 如果父级传入就以父级为准，反之默认为当前时间
-    this.init(time); // 初始化数据
-    this.$emit("getQueryByDate", this.showTime);
+    this.middleDivCalendar = {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth()
+    };
+    // 当日历收起的时候，日历高度刚好只够显示一行日期
+    this.calendarContainerHeight =
+      document.querySelector(".date-block").getBoundingClientRect().height +
+      "px";
+    this.$nextTick(function() {
+      // DOM更新完成后
+      const today = document.querySelector(".todayBlock");
+      today.scrollIntoView();
+    });
   },
+
   watch: {
     value(newVal, oldVal) {
       this.showMask = newVal;
@@ -230,6 +226,29 @@ export default {
     },
     showMask(val) {
       this.$emit("input", val);
+    },
+    isShow() {
+      // 监听日历的收起与展开，改变日历的高度
+      const height =
+        document.querySelector(".date-block").getBoundingClientRect().height +
+        "px";
+      console.log(height)
+      this.calendarContainerHeight = this.isShow ? "3rem" : "300px";
+      if (!this.isShow) {
+        const today = document.querySelector(".todayBlock");
+        today.scrollIntoView();
+      }
+    },
+    middleDivCalendar() {
+      // 监听中间div日历的时间,根据中间div的日历获取上下div的日历
+      this.preDivCalendar = this.getPrevMonth(
+        this.middleDivCalendar.month,
+        this.middleDivCalendar.year
+      );
+      this.nextMiddleDivCalendar = this.getNextMonth(
+        this.middleDivCalendar.month,
+        this.middleDivCalendar.year
+      );
     }
   }
 };
@@ -276,146 +295,42 @@ export default {
         box-sizing: border-box;
       }
     }
+  }
+}
 
-    .weeks-container {
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      position: relative;
-      justify-content: center;
-      align-items: center;
-      margin-top: 30px;
-    }
-
-    .weeks {
-      width: 300px;
-      height: 100px;
-    }
-    .week {
-      width: 2.28rem;
-      height: 1.4rem;
-      line-height: 1.2rem;
+.date-title {
+  display: flex;
+  padding: 0.1rem 0;
+  text-align: center;
+  border-bottom: 0.01rem solid #d1d1d1;
+  div {
+    flex: 1;
+  }
+}
+.calendar-container {
+  overflow-y: scroll;
+  overflow-scrolling: touch;
+  transition: height 0.5s ease;
+  .date-container {
+    .date-header {
       text-align: center;
-      display: inline-block;
+      padding: 0.07rem 0;
+      background-color: #f8f8f8;
     }
-
-    .main-container {
-      width: 100%;
+    .date-board {
       display: flex;
-      flex-direction: row;
-      position: relative;
-      justify-content: center;
-      align-items: center;
-      margin-top: 0px;
-    }
-
-    .main {
-      width: 300px;
-      height: 300px;
-      display: block;
-      flex-direction: row;
-    }
-    .main .day div {
-
-    }
-    .main .day .value {
-      height: 1rem;
-      width: 1rem;
-      margin: 0 auto;
-      border-radius: 50%;
-      color: #fff;
-      line-height: 1rem;
-    }
-    .main .day .value.on {
-      background-color: #fff;
-      color: #00a4ff;
-    }
-    .main .day .value.disbaled {
-      color: #ccc;
-    }
-    .main .day .parameter {
-      width: 0.2rem;
-      height: 0.2rem;
-      border-radius: 50%;
-      background-color: #fff;
-      margin: 0.05rem auto;
-    }
-
-    .content {
-      color: #797979;
-      line-height: 26px;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
-    .inp {
-      margin: 10px 0 0 20px;
-      width: 200px;
-      height: 40px;
-      padding-left: 4px;
-      border-radius: 4px;
-      border: none;
-      background: #efefef;
-      outline: none;
-      &:focus {
-        border: 1px solid #509ee3;
-      }
-    }
-    .btns {
-      width: 100%;
-      height: 60px;
-      // line-height: 60px;
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      text-align: right;
-      padding: 0 16px;
-      box-sizing: border-box;
-      & > div {
-        display: inline-block;
-        height: 40px;
-        line-height: 40px;
-        padding: 0 14px;
-        color: #ffffff;
-        background: #f1f1f1;
-        border-radius: 8px;
-        margin-right: 12px;
-        cursor: pointer;
-      }
-      .default-btn {
-        color: #787878;
-        &:hover {
-          color: #509ee3;
-        }
-      }
-      .danger-btn {
-        background: #ef8c8c;
-        &:hover {
-          background: rgb(224, 135, 135);
-        }
-        &:active {
-          background: #ef8c8c;
-        }
-      }
-      .confirm-btn {
-        color: #ffffff;
-        background: #509ee3;
-        &:hover {
-          background: #6fb0eb;
-        }
-      }
-    }
-    .close-btn {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
+      display: -webkit-flex;
+      flex-wrap: wrap;
+      -webkit-flex-wrap: wrap;
       text-align: center;
-      font-size: 18px;
-      cursor: pointer;
-      &:hover {
-        font-weight: 600;
+      div {
+        width: 14.28571%;
+        padding: 0.1rem 0;
+      }
+      .todayBlock {
+        span {
+          color: red;
+        }
       }
     }
   }
