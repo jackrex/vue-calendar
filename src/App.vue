@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Vue-Calendar App"/>
+    <HelloWorld msg="Welcome Vue-Calendar App"/>
   </div>
 </template>
 

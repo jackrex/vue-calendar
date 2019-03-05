@@ -5,17 +5,20 @@
         <button class="close" @click="closeMask"></button>
         <div class="dialog-title">{{title}}</div>
       </div>
-      <div class="weeks">
-        <div class="week" v-for="(wk,key) in weekName" :key="key">{{wk}}</div>
+      <div class="weeks-container">
+        <div class="weeks">
+          <div class="week" v-for="(wk,key) in weekName" :key="key">{{wk}}</div>
+        </div>
       </div>
-
-      <div class="main">
-        <div class="day" v-for="(day,key) in dateArr" :key="key" @click="clickDate(day,key)">
-          <div
-            class="value"
-            :class="(day.flag && 'disbaled') || (day.isActive && 'on')"
-          >{{day.value}}</div>
-          <div class="parameter"></div>
+      <div class="main-container">
+        <div class="main">
+          <div class="day" v-for="(day,key) in dateArr" :key="key" @click="clickDate(day,key)">
+            <div
+              class="value"
+              :class="(day.flag && 'disbaled') || (day.isActive && 'on')"
+            >{{day.value}}</div>
+            <div class="parameter"></div>
+          </div>
         </div>
       </div>
 
@@ -32,6 +35,9 @@
 </template>
 
 <script>
+
+import monthUtil from './monthUtil.js'
+
 export default {
   props: {
     value: {},
@@ -247,10 +253,11 @@ export default {
     transform: translate(-50%, -50%);
     border-radius: 8px;
     position: relative;
+    display: flex;
+    flex-direction: column;
 
     .title-container {
       display: flex;
-
       position: relative;
       .close {
         margin-top: 10px;
@@ -270,8 +277,21 @@ export default {
       }
     }
 
-    .weeks .week,
-    .main .day {
+    .weeks-container {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    .weeks {
+      width: 300px;
+      height: 100px;
+    }
+    .week {
       width: 2.28rem;
       height: 1.4rem;
       line-height: 1.2rem;
@@ -279,12 +299,24 @@ export default {
       display: inline-block;
     }
 
-    .main {
+    .main-container {
       width: 100%;
-      /* height:100%; */
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      justify-content: center;
+      align-items: center;
+      margin-top: 0px;
+    }
+
+    .main {
+      width: 300px;
+      height: 300px;
+      display: block;
+      flex-direction: row;
     }
     .main .day div {
-      display: block;
+
     }
     .main .day .value {
       height: 1rem;
