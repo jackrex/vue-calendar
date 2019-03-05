@@ -17,7 +17,7 @@
             <div>五</div>
             <div>六</div>
           </div>
-          <div class="calendar-container">
+          <div class="calendar-container" v-on:scroll="scrollDebounce">
             <div class="date-container premonth">
               <div class="date-header">{{ `${preDivCalendar.year}年${preDivCalendar.month + 1}月` }}</div>
               <div class="date-board">
@@ -27,24 +27,10 @@
                 ></div>
                 <div
                   class="date-block"
-                  :class="{todayBlock: i === currentSelectCalendar.day & preDivCalendar.month === currentSelectCalendar.month & preDivCalendar.year === currentSelectCalendar.year}"
                   v-for="i in getMonthDayByMonthYear(preDivCalendar.month, preDivCalendar.year)"
                   :key="i"
-                  @click.stop="dateClickHandle(i, preDivCalendar.month)"
                 >
-                  <span
-                    v-if="i === new Date().getDate() & preDivCalendar.month === new Date().getMonth()"
-                  >今天</span>
-                  <span
-                    v-else-if="i === new Date().getDate() + 1 & preDivCalendar.month === new Date().getMonth()"
-                  >明天</span>
-                  <span
-                    v-else-if="i < new Date().getDate() + 1 & preDivCalendar.month === new Date().getMonth()"
-                  ></span>
-                   <span class="endBlock"
-                    v-else-if="i > endCalendar.getDate() & preDivCalendar.month >= endCalendar.getMonth() & preDivCalendar.year >= endCalendar.getFullYear()"
-                  >{{ i }}</span>
-                  <span v-else>{{ i }}</span>
+                <span >{{ i }}</span>
                 </div>
               </div>
             </div>
@@ -65,19 +51,12 @@
                   :key="i"
                   @click.stop="dateClickHandle(i, middleDivCalendar.month)"
                 >
-                  <span
-                    v-if="i === new Date().getDate() & middleDivCalendar.month === new Date().getMonth()"
-                  >今天</span>
-                  <span
-                    v-else-if="i === new Date().getDate() + 1 & middleDivCalendar.month === new Date().getMonth()"
-                  >明天</span>
-                  <span
-                    v-else-if="i < new Date().getDate() + 1 & middleDivCalendar.month === new Date().getMonth()"
-                  ></span>
-                   <span class="endBlock"
-                    v-else-if="middleDivCalendar.month > endCalendar.getMonth() | (i > endCalendar.getDate() & middleDivCalendar.month >= endCalendar.getMonth() & middleDivCalendar.year >= endCalendar.getFullYear())"
-                  >{{ i }}</span>
+                  <span v-if="i === new Date().getDate() & middleDivCalendar.month === new Date().getMonth()">今天</span>
+                  <span v-else-if="i === new Date().getDate() + 1 & middleDivCalendar.month === new Date().getMonth()">明天</span>
+                  <span v-else-if="i < new Date().getDate() + 1 & middleDivCalendar.month === new Date().getMonth()"></span>
+                  <span v-else-if="i < new Date().getDate() + 1 & middleDivCalendar.month < new Date().getMonth() & middleDivCalendar.year < new Date().getFullYear()"></span>
                   <span v-else>{{ i }}</span>
+
                 </div>
               </div>
             </div>
@@ -92,24 +71,10 @@
                 ></div>
                 <div
                   class="date-block"
-                  :class="{todayBlock: i === currentSelectCalendar.day & nextMiddleDivCalendar.month === currentSelectCalendar.month & nextMiddleDivCalendar.year === currentSelectCalendar.year}"
                   v-for="i in getMonthDayByMonthYear (nextMiddleDivCalendar.month, nextMiddleDivCalendar.year)"
                   :key="i"
-                  @click.stop="dateClickHandle(i, nextMiddleDivCalendar.month)"
                 >
-                          <span
-                    v-if="i === new Date().getDate() & nextMiddleDivCalendar.month === new Date().getMonth()"
-                  >今天</span>
-                  <span
-                    v-else-if="i === new Date().getDate() + 1 & nextMiddleDivCalendar.month === new Date().getMonth()"
-                  >明天</span>
-                  <span
-                    v-else-if="i < new Date().getDate() + 1 & nextMiddleDivCalendar.month === new Date().getMonth()"
-                  ></span>
-              <span class="endBlock"
-                    v-else-if="nextMiddleDivCalendar.month >= endCalendar.getMonth() & nextMiddleDivCalendar.year >= endCalendar.getFullYear()"
-                  >{{ i }}</span>
-                  <span v-else>{{ i }}</span>
+                  <span>{{ i }}</span>
                 </div>
               </div>
             </div>
@@ -124,11 +89,6 @@
 
 <script>
 import monthUtil from "./monthUtil.js";
-Date.prototype.addDays = function(days) {
-    var date = new Date(this.valueOf());
-    date.setDate(date.getDate() + days);
-    return date;
-}
 
 export default {
   name: "calendarSlider",
@@ -138,10 +98,6 @@ export default {
     type: {
       type: String,
       default: "default"
-    },
-    unavailableDuration: {
-        type: Number,
-        defalut: 30
     },
     events: {
       type: Array,
@@ -153,9 +109,7 @@ export default {
   data() {
     return {
       showMask: false,
-      unavailableDuration: 30,
-      endCalendar: null,
-      currentSelectCalendar: { year: 2019, month: 2, day: 14 },
+      currentSelectCalendar: {year: 2019, month: 2, day: 14},
       scrollTimer: null, // 滚动定时器，用于滚动事件防抖动
       preDivCalendar: { year: 2019, month: 2 }, // 第一个div显示的日历
       middleDivCalendar: { year: 2019, month: 3 }, // 中间div显示的日历
@@ -171,16 +125,11 @@ export default {
       this.$emit("cancel");
       this.closeMask();
     },
-    dateClickHandle(day, month) {
-      console.log(day, month);
-      console.log(this.endCalendar.getDate(), this.endCalendar.getMonth());
-      console.log(this.middleDivCalendar.year, this.middleDivCalendar.month);
-    //   if (month + 1 > this.endCalendar.getMonth() && day > this.endCalendar.getDate()){
-    //       return
-    //   }
-      this.currentSelectCalendar.month = month;
-      this.currentSelectCalendar.day = day;
-      this.$emit("dateClick", day, month);
+    dateClickHandle (day, month) {
+        console.log(day, month);
+        this.currentSelectCalendar.month = month;
+        this.currentSelectCalendar.day = day;
+        this.$emit('dateClick', date)
     },
     getPrevMonth: function(m, y) {
       // 获取上一个月
@@ -218,17 +167,49 @@ export default {
         31
       ]; // 数组中的每一项代表每个月的天数
       return monthDay[month];
+    },
+    scrollDebounce(e) {
+      clearTimeout(this.scrollTimer);
+      let self = this;
+      // 设置定时器，防止scroll抖动
+      this.scrollTimer = setTimeout(function() {
+        if (e.target.scrollTop === 0) {
+          self.middleDivCalendar = self.getPrevMonth(
+            self.middleDivCalendar.month,
+            self.middleDivCalendar.year
+          );
+          self.$nextTick(function() {
+            // DOM 更新了
+            const premonth = document.querySelector(".premonth");
+            e.target.scrollTop = premonth.offsetHeight;
+          });
+        }
+        if (
+          e.target.scrollTop + e.target.clientHeight + 1 >=
+          e.target.scrollHeight
+        ) {
+          self.middleDivCalendar = self.getNextMonth(
+            self.middleDivCalendar.month,
+            self.middleDivCalendar.year
+          );
+          self.$nextTick(function() {
+            // DOM 更新了
+            const nextmonth = document.querySelector(".nextmonth");
+            e.target.scrollTop =
+              e.target.scrollHeight -
+              e.target.clientHeight -
+              nextmonth.offsetHeight;
+          });
+        }
+      }, 100);
     }
   },
   //初始化
   mounted() {
     this.showMask = this.value;
-    this.endCalendar = new Date().addDays(this.unavailableDuration)
-    console.log("aaaa")
-    console.log(this.endCalendar)
     this.middleDivCalendar = {
       year: new Date().getFullYear(),
-      month: new Date().getMonth() + 1
+      month: new Date().getMonth()
     };
 
     this.currentSelectCalendar = {
@@ -236,6 +217,12 @@ export default {
       month: new Date().getMonth(),
       day: new Date().getDate()
     };
+
+    this.$nextTick(function() {
+      // DOM更新完成后
+      const today = document.querySelector(".todayBlock");
+      today.scrollIntoView();
+    });
   },
 
   watch: {
@@ -346,10 +333,6 @@ export default {
         span {
           color: white;
         }
-      }
-
-      .endBlock {
-          color: #fd992e;
       }
     }
   }
