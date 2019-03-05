@@ -2,7 +2,7 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <button v-on:click="showPop">Click</button>
-    <DatePicker v-model="sendVal" title="选择日期" v-on:cancel="clickCancel"></DatePicker>
+    <DatePicker v-model="sendVal" title="选择日期" :parentTime="currentTime" v-on:cancel="clickCancel"></DatePicker>
   </div>
 </template>
 
@@ -16,7 +16,8 @@ export default {
   },
   data() {
     return {
-      sendVal: false
+      sendVal: false,
+      currentTime: this.simpleDateFormat(new Date(), 'yyyy/MM/dd')
     }
   },
   components: {
@@ -28,7 +29,29 @@ export default {
       this.sendVal = true
     },
     clickCancel: function() {
-    }
+    },
+         simpleDateFormat(time, format){     // 格式化日期，ios下建议'2017/11/15',斜杠'/'代替横线'-'
+                var t = new Date(time);
+                var tf = function(i) {
+                    return (i < 10 ? '0' : '') + i
+                };
+                return format.replace(/yyyy|MM|dd|HH|mm|ss/g, function(a) {
+                    switch (a) {
+                        case 'yyyy':
+                            return tf(t.getFullYear());
+                        case 'MM':
+                            return tf(t.getMonth() + 1);
+                        case 'mm':
+                            return tf(t.getMinutes());
+                        case 'dd':
+                            return tf(t.getDate());
+                        case 'HH':
+                            return tf(t.getHours());
+                        case 'ss':
+                            return tf(t.getSeconds());
+                    }
+                })
+            }    
   }
 }
 </script>
