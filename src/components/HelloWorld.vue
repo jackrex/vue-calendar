@@ -2,7 +2,7 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <button v-on:click="showPop">Click</button>
-    <DatePicker v-model="sendVal" title="选择日期" :parentTime="currentTime" v-on:cancel="clickCancel"></DatePicker>
+    <DatePicker v-model="sendVal" :parentTime="currentTime" v-on:cancel="clickCancel"></DatePicker>
   </div>
 </template>
 
